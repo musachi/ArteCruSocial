@@ -6,4 +6,4 @@ Tareas pendientes:
 -Pensar como podemos armar bien el currículum, pero que sea algo novedoso no texto plano.
 -Definir como pondremos lo de la "firma" en el sitio, sería bueno intentar hacer algo novedoso en este sentido, no solo eso que al final no tiene tanto de original.
 -Definir la BD y la arquitectura (Adonys y Boris)
-
+-Pensar en las ideas para el diseño de la interfaz de la red social
