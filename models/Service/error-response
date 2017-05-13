@@ -1,0 +1,12 @@
+var _ = require('lodash');
+
+var ErrorResponse = module.exports = function (status, errorCode, description) {
+    _.extend(this, {
+        'status': status,
+        'data': {
+            'errorCode': errorCode,
+            'description': description
+        }
+    });
+};
+

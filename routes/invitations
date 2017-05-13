@@ -1,0 +1,205 @@
+/**
+ * Invitations route
+ */
+
+var dbNeo4j = require('../neo4j/db-neo4j')
+    , users = require('../models/User/users')
+    , _ = require('lodash')
+    , status = require('../models/Service/status')
+    , validateData = require('../helpers/validate-data')
+    , constantsVars = require('../helpers/contants')
+    , User = require('../models/neo4j_model/user')
+    , Response = require('../models/Service/response')
+    , ErrorResponse = require('../models/Service/error-response')
+    , writeResponse = require('../helpers/write-response')
+    , messages = require('../helpers/messages').messages
+    , util = require('util')
+    , errors = require('../models/Service/errors')
+    , invitations = require('../models/Invitation/invitations')
+    , invitationStatus = require('../models/Service/invitation-status');
+;
+
+var constants = constantsVars.constants;
+var arts = constantsVars.arts();
+
+exports.sendInvitation = function (req, res, next) {
+    const session = dbNeo4j.getSession(req);
+
+    const user_id = _.get(req.body, 'user_id');
+    const current_user_id = req.user['id'];
+
+    console.log("current_user_id: " + current_user_id + "user id: " + user_id);
+
+    if (validateData.isUndefined(user_id) || validateData.isUndefined(current_user_id) || user_id == current_user_id)
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    else if (validateData.isUndefined(session)) {
+        writeResponse.write(res, errors.InternalErrorResponse());
+    } else {
+        invitations.sendInvitation(session, current_user_id, user_id).then(function partnerInvitationCallback(response) {
+            writeResponse.write(res, new Response(status.Created, response));
+        }).catch(function partnerInvitationError(err) {
+            console.log("Error inviting user: " + util.inspect(err));
+            writeResponse.write(res, errors.InternalErrorResponse());
+        });
+    }
+};
+
+exports.getInvitations = function (req, res, next) {
+
+    const session = dbNeo4j.getSession(req);
+    var start = parseInt(_.get(req.query, 'start'));
+    var counter = parseInt(_.get(req.query, 'counter'));
+    const id = req.user['id'];
+
+    if (validateData.isUndefined(id))
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    else if (validateData.isUndefined(session)) {
+        console.log("getting users session null");
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else {
+        if (isNaN(start) || isNaN(counter)) {
+            start = 0;
+            counter = constants.GET_USERS_COUNTER;
+        }
+        invitations.getInvitations(session, start, counter, id).then(function invitationsCallback(response) {
+            writeResponse.write(res, new Response(status.Ok, response));
+        }).catch(function () {
+            writeResponse.write(res, errors.InternalErrorResponse());
+        });
+    }
+};
+
+exports.getInvitationsSent = function (req, res, next) {
+
+    const session = dbNeo4j.getSession(req);
+    var start = parseInt(_.get(req.query, 'start'));
+    var counter = parseInt(_.get(req.query, 'counter'));
+    const current_user_id = req.user['id'];
+
+    if (validateData.isUndefined(current_user_id))
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    else if (validateData.isUndefined(session)) {
+        console.log("getting users session null");
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else {
+        if (isNaN(start) || isNaN(counter)) {
+            start = 0;
+            counter = constants.GET_USERS_COUNTER;
+        }
+        invitations.getInvitationsSent(session, start, counter, current_user_id).then(function invitationsCallback(response) {
+            console.log("get invitations response: " + response);
+            writeResponse.write(res, new Response(status.Ok, response));
+        }).catch(function () {
+            writeResponse.write(res, errors.InternalErrorResponse());
+        });
+    }
+};
+
+exports.countInvitations = function (req, res, next) {
+    var session = dbNeo4j.getSession(req);
+    const current_user_id = req.user['id'];
+    if (validateData.isUndefined(current_user_id))
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    else if (validateData.isUndefined(session)) {
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else {
+        invitations.countInvitations(session, current_user_id).then(function countInvitationsCallback(response) {
+            console.log("route response come back: " + response);
+            writeResponse.write(res, new Response(status.Ok, response));
+        }).catch(function countErrorResponse(err) {
+            console.log(err);
+            writeResponse.write(res, errors.InternalErrorResponse());
+        });
+    }
+};
+
+exports.countInvitationsSent = function (req, res, next) {
+    var session = dbNeo4j.getSession(req);
+    const current_user_id = req.user['id'];
+
+    if (validateData.isUndefined(current_user_id))
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    else if (validateData.isUndefined(session)) {
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else {
+        invitations.countInvitationsSent(session, current_user_id).then(function countInvitationsCallback(response) {
+            console.log("route response come back: " + response);
+            writeResponse.write(res, new Response(status.Ok, response));
+        }).catch(function countErrorResponse(err) {
+            console.log(err);
+            writeResponse.write(res, errors.InternalErrorResponse());
+        });
+    }
+};
+
+exports.findInvitationById = function (req, res, next) {
+    var session = dbNeo4j.getSession(req);
+    const current_user_id = req.user['id'];
+    const user_id = req.params.user_id;
+
+    if (validateData.isUndefined(session)) {
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else if (validateData.isUndefined(current_user_id) || validateData.isUndefined(user_id) || current_user_id == user_id) {
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    }
+    else {
+        invitations.findInvitationById(session, current_user_id, user_id).then(function findInvitationCallback() {
+
+        }).catch(function findInvitationError(err) {
+            console.log("route error finding invitation: " + util.inspect(err));
+            writeResponse.write(res, errors.InternalErrorResponse());
+        });
+    }
+};
+
+exports.acceptInvitation = function (req, res, next) {
+    var session = dbNeo4j.getSession(req);
+    const current_user_id = req.user['id'];
+    const user_id = req.params.user_id;
+
+    if (validateData.isUndefined(session)) {
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else if (validateData.isUndefined(current_user_id) || validateData.isUndefined(user_id)) {
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    }
+    else {
+        invitations.acceptInvitation(session, current_user_id, user_id).then(function acceptInvitationCallback(response) {
+            writeResponse.write(res, new Response(status.Ok, response));
+        }).catch(function acceptInvitationError(err) {
+            console.log("route accept invitation error: " + util.inspect(err));
+            writeResponse.write(res, errors.InternalErrorResponse);
+        });
+    }
+};
+
+exports.deleteInvitation = function (req, res, next) {
+    var session = dbNeo4j.getSession(req);
+    const current_user_id = req.user['id'];
+    const user_id = req.params.user_id;
+
+    if (validateData.isUndefined(session)) {
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else if (validateData.isUndefined(current_user_id) || validateData.isUndefined(user_id)) {
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    }
+    else {
+        invitations.deleteInvitation(session, current_user_id, user_id).then(function deniedInvitationCallback(response) {
+            writeResponse.write(res, new Response(status.Ok, response));
+        }).catch(function deniedInvitationError(err) {
+            console.log("route accept invitation error: " + util.inspect(err));
+            writeResponse.write(res, errors.InternalErrorResponse);
+        });
+    }
+};
+
+
+
+
+

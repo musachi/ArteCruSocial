@@ -1,0 +1,40 @@
+{
+  "name": "noe4j",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "enum": ">=2.2.0",
+    "errorhandler": "^1.4.3",
+    "express": "^4.13.4",
+    "hamlet": "^0.3.3",
+    "hat": ">=0.0.3",
+    "install": "^0.8.1",
+    "jsonwebtoken": "*",
+    "lodash": "^4.15.0",
+    "md5": "^2.2.1",
+    "method-override": "^2.3.5",
+    "mocha": ">= 1.6.0",
+    "moment": "^2.11.2",
+    "morgan": "^1.7.0",
+    "nconf": "^0.8.4",
+    "neo4j": "^1.1.1",
+    "neo4j-driver": "^1.1.0-M01",
+    "npm": "^3.10.9",
+    "openssl": "^1.1.0",
+    "randomstring": "^1.1.5",
+    "serve-favicon": "^2.3.0",
+    "should": ">= 0.6.3",
+    "sync": "*",
+    "uuid": "*",
+    "cors": "*"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "author": "ArteCru",
+  "license": "ISC"
+}
