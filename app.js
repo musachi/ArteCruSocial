@@ -48,13 +48,15 @@ users.route('/users/:id')
     .get(router.user.findUserById)
     .put(router.user.updateUser);
 users.route('/users/:id/partners').get(router.user.getPartners);
+users.route('/users/:id/arts').get(router.user.getPartners);
 users.route('/users/find-by-email/:email').get(router.user.findUsersByEmail);
 users.route('/users/find-by-name/:name').get(router.user.findUsersByName);
 users.route('/users/find/:field').get(router.user.findUsers);
 
-/*users.route('/arts')
-    .post(router.arts.addArt)
-    .get(router.arts.getArts);*/
+users.route('/arts')
+    .post(router.user.addArtsToUser)
+    .get(router.user.getArts);
+    /*.get(router.arts.getArts);*/
 
 invitations.route('/invitations/count').get(router.invitations.countInvitations);
 invitations.route('/invitations')

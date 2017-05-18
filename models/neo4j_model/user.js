@@ -7,7 +7,7 @@ var md5 = require('md5');
 var avatar_url = 'https://www.gravatar.com/avatar/';
 var validate_data = require('../../helpers/validate-data');
 
-var User = module.exports = function (_node, _art) {
+var User = module.exports = function (_node, _art, _arts) {
 
     var id = "";
     var email = "";
@@ -15,7 +15,8 @@ var User = module.exports = function (_node, _art) {
     var avatar = {
         'full_size': avatar_url + md5(email) + '?d=retro'
     };
-    var art = "";
+    let art = "";
+    let arts = "";
 
     if (arguments.length > 0) {
         if (!_node.isUndefined && _node != null) {
@@ -28,6 +29,11 @@ var User = module.exports = function (_node, _art) {
             if (!validate_data.isUndefined(art))
                 art = _art;
         }
+
+        if (arguments.length > 2) {
+            if (!validate_data.isUndefined(arts))
+                arts = _arts;
+        }
     }
 
     _.extend(this, {
@@ -35,6 +41,11 @@ var User = module.exports = function (_node, _art) {
         'id': id,
         'name': name,
         'avatar': avatar,
-        'art': art
+        'art': art,
+        'arts': arts
     });
+
+    function setArts(arts) {
+        this['arts'] = arts;
+    }
 };

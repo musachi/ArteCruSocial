@@ -47,8 +47,8 @@ exports.sendInvitation = function (req, res, next) {
 exports.getInvitations = function (req, res, next) {
 
     const session = dbNeo4j.getSession(req);
-    var start = parseInt(_.get(req.query, 'start'));
-    var counter = parseInt(_.get(req.query, 'counter'));
+    var offset = parseInt(_.get(req.query, 'offset'));
+    var limit = parseInt(_.get(req.query, 'limit'));
     const id = req.user['id'];
 
     if (validateData.isUndefined(id))
@@ -58,11 +58,11 @@ exports.getInvitations = function (req, res, next) {
         writeResponse.write(res, errors.InternalErrorResponse());
     }
     else {
-        if (isNaN(start) || isNaN(counter)) {
-            start = 0;
-            counter = constants.GET_USERS_COUNTER;
+        if (isNaN(offset) || isNaN(limit)) {
+            offset = 0;
+            limit = constants.GET_USERS_COUNTER;
         }
-        invitations.getInvitations(session, start, counter, id).then(function invitationsCallback(response) {
+        invitations.getInvitations(session, offset, limit, id).then(function invitationsCallback(response) {
             writeResponse.write(res, new Response(status.Ok, response));
         }).catch(function () {
             writeResponse.write(res, errors.InternalErrorResponse());
@@ -73,8 +73,8 @@ exports.getInvitations = function (req, res, next) {
 exports.getInvitationsSent = function (req, res, next) {
 
     const session = dbNeo4j.getSession(req);
-    var start = parseInt(_.get(req.query, 'start'));
-    var counter = parseInt(_.get(req.query, 'counter'));
+    var offset = parseInt(_.get(req.query, 'offset'));
+    var limit = parseInt(_.get(req.query, 'limit'));
     const current_user_id = req.user['id'];
 
     if (validateData.isUndefined(current_user_id))
@@ -84,11 +84,11 @@ exports.getInvitationsSent = function (req, res, next) {
         writeResponse.write(res, errors.InternalErrorResponse());
     }
     else {
-        if (isNaN(start) || isNaN(counter)) {
-            start = 0;
-            counter = constants.GET_USERS_COUNTER;
+        if (isNaN(offset) || isNaN(limit)) {
+            offset = 0;
+            limit = constants.GET_USERS_COUNTER;
         }
-        invitations.getInvitationsSent(session, start, counter, current_user_id).then(function invitationsCallback(response) {
+        invitations.getInvitationsSent(session, offset, limit, current_user_id).then(function invitationsCallback(response) {
             console.log("get invitations response: " + response);
             writeResponse.write(res, new Response(status.Ok, response));
         }).catch(function () {

@@ -3,7 +3,7 @@ const getStringDate = function (date) {
         var year = date.getFullYear();
         var month = date.getMonth();
         var day = date.getDay();
-        if (mount.length() < 2)
+        if (month.length() < 2)
             month = "0" + month;
         if (day.length() < 2)
             day = "0" + day;

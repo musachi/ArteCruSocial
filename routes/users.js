@@ -60,11 +60,11 @@ exports.createUser = function (req, res, next) {
 };
 
 exports.authenticate = function (req, res, next) {
-    var email = _.get(req.body, 'email');
+    var username = _.get(req.body, 'username');
     var password = _.get(req.body, 'password');
     var session = dbNeo4j.getSession(req);
 
-    var errorResponse = validateAuthenticateData(session, email, password);
+    var errorResponse = validateAuthenticateData(session, username, password);
     if (validateData.isUndefined(session)) {
         writeResponse.write(res, errors.InternalErrorResponse());
     } else {
@@ -73,9 +73,8 @@ exports.authenticate = function (req, res, next) {
             writeResponse.write(res, errorResponse);
         }
         else {
-            console.log('going to login.... email: ' + email + " password: " + password);
-            users.authenticate(session, email, password).then(function authenticateCallback(response) {
-                console.log('authenticate response: ' + util.inspect(response));
+            console.log('going to login.... email: ' + username + " password: " + password);
+            users.authenticate(session, username, password).then(function authenticateCallback(response) {
                 writeResponse.write(res, response);
             }).catch(function loginError(err) {
                 console.log("Error from login route: " + util.inspect(err));
@@ -88,18 +87,18 @@ exports.authenticate = function (req, res, next) {
 exports.getUsers = function (req, res, next) {
     var session = dbNeo4j.getSession(req);
 
-    var start = parseInt(_.get(req.query, 'start'));
-    var counter = parseInt(_.get(req.query, 'counter'));
+    var offset = parseInt(_.get(req.query, 'offset'));
+    var limit = parseInt(_.get(req.query, 'limit'));
 
     if (validateData.isUndefined(session)) {
         writeResponse.write(res, errors.InternalErrorResponse());
     } else {
-        if (isNaN(start) || isNaN(counter)) {
-            start = 0;
-            counter = constants.GET_USERS_COUNTER;
+        if (isNaN(offset) || isNaN(limit)) {
+            offset = 0;
+            limit = constants.GET_USERS_COUNTER;
         }
 
-        users.getUsers(session, start, counter).then(function usersCallback(response) {
+        users.getUsers(session, offset, limit).then(function usersCallback(response) {
             writeResponse.write(res, response);
         }).catch(function usersError(err) {
             console.log("Route error getting users: " + err.message);
@@ -138,16 +137,56 @@ exports.updateUser = function (req, res, next) {
     }
 };
 
+exports.addArtsToUser = function (req, res, next) {
+    let session = dbNeo4j.getSession(req);
+    const artsValues = _.get(req.body, 'arts').split(',');
+    const id = req.user['id'];
+    if (validateData.isUndefined(session)) {
+        writeResponse.write(res, errors.InternalErrorResponse());
+    }
+    else if (validateData.isUndefined(artsValues) || artsValues.length <= 0) {
+        writeResponse.write(res, errors.BadRequestErrorResponse());
+    }
+    else if (validateData.isUndefined(id)) {
+        writeResponse.write(res, errors.ForbiddenErrorResponse());
+    }
+    else {
+        users.addArtsToUser(session, id, artsValues).then(function addArtsCallback(response) {
+            console.log(response);
+            writeResponse.write(res, response);
+        }).catch(function addArtsError(err) {
+            console.log("routing error adding arts: " + util.inspect(err));
+            writeResponse.write(res, errors.InternalErrorResponse);
+        });
+    }
+};
+
+exports.getArts = function (req, res, next) {
+    let session = dbNeo4j.getSession(req);
+    const id = req.user['id'];
+
+    if (validateData.isUndefined(session))
+        writeResponse.write(res, errors.InternalErrorResponse());
+    else if (validateData.isUndefined(id))
+        writeResponse.write(res, errors.ForbiddenErrorResponse());
+    else {
+        users.getArts(session, id).then(function getArtsCallback(response){
+            writeResponse.write(res, response);
+        }).catch(function getArtsError(err){
+            console.log("routing error getting arts: " + util.inspect(err));
+            writeResponse.write(res, errors.InternalErrorResponse());
+        });
+    }
+};
+
 exports.findUsers = function (req, res, next) {
-    var session = dbNeo4j.getSession(req);
-    var start = parseInt(_.get(req.query, 'start'));
-    var counter = parseInt(_.get(req.query, 'counter'));
-    var id = req.user['id'];
+    let session = dbNeo4j.getSession(req);
+    let offset = parseInt(_.get(req.query, 'offset'));
+    let limit = parseInt(_.get(req.query, 'limit'));
+    const id = req.user['id'];
     const field = req.params.field;
     let art_param = parseInt(_.get(req.query, 'art'));
     let art = "";
-
-    console.log("art param: " + art_param);
 
     if (!isNaN(art_param) && validateData.isValidArtValue(art_param)) {
         art = arts[art_param];
@@ -157,13 +196,13 @@ exports.findUsers = function (req, res, next) {
     if (validateData.isUndefined(session)) {
         writeResponse.write(res, errors.InternalErrorResponse());
     } else {
-        if (isNaN(start))
-            start = 0;
-        if (isNaN(counter) || counter > constants.GET_USERS_COUNTER)
-            counter = constants.GET_USERS_COUNTER;
+        if (isNaN(offset))
+            offset = 0;
+        if (isNaN(limit) || limit > constants.GET_USERS_COUNTER)
+            limit = constants.GET_USERS_COUNTER;
 
         if (!validateData.isUndefined(field)) {
-            users.findUsers(session, id, field, art, start, counter).then(function findUsersCallback(response) {
+            users.findUsers(session, id, field, art, offset, limit).then(function findUsersCallback(response) {
                 writeResponse.write(res, response);
             }).catch(function findUsersError(err) {
                 console.log("Route error getting users: " + util.inspect(err));
@@ -177,8 +216,8 @@ exports.findUsers = function (req, res, next) {
 
 exports.findUsersByName = function (req, res, next) {
     var session = dbNeo4j.getSession(req);
-    var start = parseInt(_.get(req.query, 'start'));
-    var counter = parseInt(_.get(req.query, 'counter'));
+    var offset = parseInt(_.get(req.query, 'offset'));
+    var limit = parseInt(_.get(req.query, 'limit'));
     const name = req.params.name;
 
     console.log("routing finding user by " + name);
@@ -186,14 +225,14 @@ exports.findUsersByName = function (req, res, next) {
     if (validateData.isUndefined(session)) {
         writeResponse.write(res, errors.InternalErrorResponse());
     } else {
-        if (isNaN(start))
-            start = 0;
-        if (isNaN(counter) || counter > constants.GET_USERS_COUNTER)
-            counter = constants.GET_USERS_COUNTER;
+        if (isNaN(offset))
+            offset = 0;
+        if (isNaN(limit) || limit > constants.GET_USERS_COUNTER)
+            limit = constants.GET_USERS_COUNTER;
 
         if (!validateData.isUndefined(name)) {
             console.log("entering finding: " + name);
-            users.findUsersByName(session, start, counter, name).then(function usersByNameCallback(response) {
+            users.findUsersByName(session, offset, limit, name).then(function usersByNameCallback(response) {
                 writeResponse.write(res, response);
             }).catch(function usersByNameError(err) {
                 console.log("Route error getting users: " + util.inspect(err));
@@ -209,20 +248,20 @@ exports.findUsersByEmail = function (req, res, next) {
     console.log("routing by name");
 
     var session = dbNeo4j.getSession(req);
-    var start = parseInt(_.get(req.query, 'start'));
-    var counter = parseInt(_.get(req.query, 'counter'));
+    var offset = parseInt(_.get(req.query, 'offset'));
+    var limit = parseInt(_.get(req.query, 'limit'));
     const email = req.params.email;
 
     if (validateData.isUndefined(session)) {
         writeResponse.write(res, errors.InternalErrorResponse());
     } else {
-        if (isNaN(start))
-            start = 0;
-        if (isNaN(counter) || counter > constants.GET_USERS_COUNTER)
-            counter = constants.GET_USERS_COUNTER;
+        if (isNaN(offset))
+            offset = 0;
+        if (isNaN(limit) || limit > constants.GET_USERS_COUNTER)
+            limit = constants.GET_USERS_COUNTER;
 
         if (!validateData.isUndefined(email)) {
-            users.findUsersByEmail(session, start, counter, email).then(function usersByEmailCallback(response) {
+            users.findUsersByEmail(session, offset, limit, email).then(function usersByEmailCallback(response) {
                 writeResponse.write(res, response);
             }).catch(function usersByEmailError(err) {
                 console.log("Route error getting users: " + err.message);
@@ -303,10 +342,10 @@ var validateRegisterData = function (session, email, password, name, art) {
 };
 
 //TODO valid email
-function validateAuthenticateData(session, email, password) {
+function validateAuthenticateData(session, username, password) {
     var errorResponse = new ErrorResponse(status.InternalError, status.InternalErrorCode, messages.InternalError);
-    if (!validateData.findUndefined([session, email, password])) {
-        if (!validateData.isValidEmail(email)) {
+    if (!validateData.findUndefined([session, username, password])) {
+        if (!validateData.isValidEmail(username)) {
             console.log("login email error");
             errorResponse = new ErrorResponse(status.UnprocessableEntity, status.InvalidEmail, messages.InvalidEmail);
             validLoginData = false;
@@ -317,6 +356,7 @@ function validateAuthenticateData(session, email, password) {
         }
     }
     else {
+        console.log("bad request");
         errorResponse = new ErrorResponse(status.BadRequest, "", "");
         validLoginData = false;
     }

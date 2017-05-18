@@ -11,7 +11,7 @@ var writeResponse = require('../helpers/write-response');
 var messages = require('../helpers/messages').messages;
 
 var authUser = module.exports = function (req, res, next) {
-    var errorResponse = new ErrorResponse(status.Unauthorized, status.InvalidCredentials, messages.InvalidToken);
+    let errorResponse = new ErrorResponse(status.Unauthorized, status.InvalidCredentials, messages.InvalidToken);
     if (req.url === '/' || (req.url === '/users' && req.method === 'POST') || req.url === '/authenticate' || req.method === 'OPTIONS') {
         next();
     }
@@ -23,7 +23,7 @@ var authUser = module.exports = function (req, res, next) {
             writeResponse.write(res, errorResponse);
         }
         else {
-            var authHeader = authorization.split(' ');
+            const authHeader = authorization.split(' ');
             if (!authHeader || !authHeader[1]) {
                 req.userId = null;
                 console.log("auth header: " + authHeader);

@@ -21,7 +21,7 @@ const createUniqueConstraint = function () {
 const createArts = function () {
     return 'CREATE (paint:Art {name: "Paint"}), (music:Art {name: "Music"}), ' +
         '(sculpture:Art {name: "Sculpture"}), (architecture:Art {name: "Architecture"}), ' +
-        '(literature:Art {name: "Literature"}), (dance:Art {name: "Dance"}), (cinema:Art {name: "Cinema"})';
+        '(literature:Art {name: "Literature"}), (dance:Art {name: "Dance"}), (cinema:Art {name: "Cinema"}, (other:Art {name: "Other"})';
 };
 
 /**
@@ -29,14 +29,18 @@ const createArts = function () {
  * @constructor
  */
 const getArts = function () {
-    return 'MATCH (art:Art) RETURN art';
+    return ['MATCH (user:User {id:{id}})-[:PROFESSIONAL_PROFILE]->(pro)-[rel:HAS_ART {main:true}]->(main_art:Art) ',
+        'MATCH (pro)-[:HAS_ART]->(art:Art) WHERE NOT (main_art.name = art.name) ',
+        'RETURN COLLECT(art.name) AS arts, main_art.name AS art'].join("\n");
 };
 
 const createUser = function () {
     return ['MATCH (art:Art {name: {art}}) ',
-        'MERGE (user:User {id: {id}, email: {email}, password: {password}, name: {name}, created_at: {created_at}})',
+        'MERGE (user:User {id: {id}, email: {email}, password: {password}, name: {name}, created_at: {created_at}}) ',
         'MERGE (user)-[:PERSONAL_PROFILE]->(personal:PersonalProfile) ',
         'MERGE (user)-[:PROFESSIONAL_PROFILE]->(professional:ProfessionalProfile)-[know:HAS_ART {main: true}]->(art) ',
+
+
         'RETURN user, art.name AS art'].join('\n');
 };
 
@@ -49,12 +53,14 @@ const updateUser = function () {
 const getUserById = function () {
     return ['MATCH (user:User {id: {id}})-[relation]->(profile) ',
         'MATCH (profile)-[rel:HAS_ART {main: true}]->(art:Art) ',
-        'RETURN user, art.name AS art'].join('\n');
+        'OPTIONAL MATCH (profile)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT (EXISTS(rel_arts.main)) ',
+        'RETURN user, art.name AS art, COLLECT(arts.name) AS arts'].join('\n');
 };
 
 const getUserByEmail = function () {
     return ['MATCH (user:User {email: {email}})-[relation]->(profile) ',
         'MATCH (profile)-[rel:HAS_ART {main: true}]->(art:Art) ',
+        'OPTIONAL MATCH (profile)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT rel_arts.main = true ',
         'RETURN user, art.name AS art'].join('\n');
 };
 
@@ -63,24 +69,28 @@ const getUsersByEmail = function () {
     return ['MATCH (user:User)-[relation]->(profile) ',
         'MATCH (profile)-[rel:HAS_ART {main: true}]->(art:Art) ',
         'WHERE user.email CONTAINS lower(trim({email})) ',
-        'RETURN user, art.name AS art ORDER BY user.name SKIP {start} LIMIT {counter}'].join('\n');
+        'OPTIONAL MATCH (profile)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT (EXISTS(rel_arts.main)) ',
+        'RETURN user, art.name AS art, COLLECT(arts.name) AS arts ORDER BY user.name SKIP {offset} LIMIT {limit}'].join('\n');
 };
 
 const findUsersByName = function () {
     return ['MATCH (user:User)-[relation]->(profile) ',
         'MATCH (profile)-[rel:HAS_ART {main: true}]->(art:Art) ',
         'WHERE lower(trim(user.name)) CONTAINS lower(trim({name})) ',
-        'RETURN user, art.name AS art ORDER BY user.name SKIP {start} LIMIT {counter}'].join('\n');
+        'OPTIONAL MATCH (profile)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT (EXISTS(rel_arts.main)) ',
+        'RETURN user, art.name AS art, COLLECT(arts.name) AS arts ORDER BY user.name SKIP {offset} LIMIT {limit}'].join('\n');
 };
 
 const findUsers = function () {
     return ['MATCH (user:User)-[relation]->(profile) ',
         'MATCH (me:User {id: {id}})',
         'MATCH (profile)-[rel:HAS_ART {main: true}]->(art:Art) ',
-        'WHERE lower(trim(user.name)) CONTAINS lower(trim({field})) OR user.email CONTAINS lower(trim({field}))',
+        'WHERE lower(trim(user.name)) CONTAINS lower(trim({field})) OR user.email CONTAINS lower(trim({field})) ',
+        'OPTIONAL MATCH (profile)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT (EXISTS(rel_arts.main))',
         'OPTIONAL MATCH (me)-[partner_rel_sent: IS_PARTNER]->(user) ',
         'OPTIONAL MATCH (me)<-[partner_rel_received: IS_PARTNER]-(user) ',
-        'RETURN DISTINCT user, partner_rel_sent, partner_rel_received, art.name AS art ORDER BY user.name SKIP {start} LIMIT {counter}'].join('\n');
+        'RETURN DISTINCT user, partner_rel_sent, partner_rel_received, art.name AS art, COLLECT(arts.name) AS arts ' +
+        'ORDER BY user.name SKIP {offset} LIMIT {limit}'].join('\n');
 };
 
 const findUsersByArt = function () {
@@ -88,16 +98,19 @@ const findUsersByArt = function () {
         'MATCH (me:User {id: {id}})',
         'MATCH (profile)-[rel:HAS_ART {main: true}]->(art:Art) ',
         'WHERE lower(trim(user.name)) CONTAINS lower(trim({field})) OR user.email CONTAINS lower(trim({field}))',
-        'MATCH (user)-[PROFESSIONAL_PROFILE]->(p)-[HAS_ART {main:true}]->(art:Art {name: {art}})',
+        'MATCH (user)-[PROFESSIONAL_PROFILE]->(p)-[HAS_ART {main:true}]->(art:Art {name: {art}}) ',
+        'OPTIONAL MATCH (profile)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT (EXISTS(rel_arts.main)) ',
         'OPTIONAL MATCH (me)-[partner_rel_sent: IS_PARTNER]->(user) ',
         'OPTIONAL MATCH (me)<-[partner_rel_received: IS_PARTNER]-(user) ',
-        'RETURN DISTINCT user, partner_rel_sent, partner_rel_received, art.name AS art ORDER BY user.name SKIP {start} LIMIT {counter}'].join('\n');
+        'RETURN DISTINCT user, partner_rel_sent, partner_rel_received, art.name AS art, COLLECT(arts.name) AS arts' +
+        ' ORDER BY user.name SKIP {offset} LIMIT {limit}'].join('\n');
 };
 
 const getUsers = function () {
     return ['MATCH (user:User)-[relation]->(profile) ',
         'MATCH (profile)-[rel:HAS_ART {main: true}]->(art:Art) ',
-        'RETURN user, art.name AS art ORDER BY user.name SKIP {start} LIMIT {counter}'].join('\n');
+        'OPTIONAL MATCH (profile)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT (EXISTS(rel_arts.main)) ',
+        'RETURN user, art.name AS art, COLLECT(arts.name) AS arts ORDER BY user.name SKIP {offset} LIMIT {limit}'].join('\n');
 };
 
 const login = function () {
@@ -105,7 +118,8 @@ const login = function () {
         'MATCH (user)-[:PERSONAL_PROFILE]->(personal) ',
         'MATCH (user)-[:PROFESSIONAL_PROFILE]->(professional) ',
         'MATCH (professional)-[:HAS_ART {main: true}]->(art) ',
-        'RETURN user, art.name AS art'].join('\n');
+        'OPTIONAL MATCH (professional)-[rel_arts:HAS_ART]->(arts:Art) WHERE NOT (EXISTS(rel_arts.main)) ',
+        'RETURN user, art.name AS art, COLLECT(arts.name) AS arts'].join('\n');
 };
 
 const me = function () {
@@ -116,6 +130,21 @@ const me = function () {
         'RETURN user, art'
     ].join("\n");
 };
+
+const addArtsToUser = function () {
+    return ['MATCH (user:User {id:{id}})-[:PROFESSIONAL_PROFILE]->(pro_profile)-[:HAS_ART {main: true}]->(main_art:Art)',
+        'UNWIND {arts} AS art_name ',
+        'MATCH (art:Art {name:art_name}) ',
+        'MERGE (pro_profile)-[rel_art:HAS_ART]->(art) ',
+        'RETURN user, main_art.name AS art, COLLECT(art.name) AS arts'].join("\n");
+};
+
+const getUserArts = function () {
+    return ['MATCH (me:User {id:{id}})-[]->(pro_profile) ',
+        'MATCH (pro_profile)-[:HAS_ART]->(art:Art) ',
+        'RETURN me, art.name AS art'].join("\n");
+};
+
 
 /**
  * Invitations
@@ -176,21 +205,20 @@ const deleteInvitation = function () {
 };
 
 const sortPaginator = function (sort) {
-    return 'ORDER BY ' + sort + ' SKIP {start} LIMIT {counter}';
+    return 'ORDER BY ' + sort + ' SKIP {offset} LIMIT {limit}';
 };
 
 const getPartners = function () {
-    return ['MATCH (user:User {id: {user_id}})-[:IS_PARTNER {status: '
-    + invitationStatus.Accept + '}]-(partner:User)-[]-(p)-[]->(art: Art), (me:User {id:{id}}) ',
+    return ['MATCH (main_user:User {id: {user_id}})-[:IS_PARTNER {status: '
+    + invitationStatus.Accept + '}]-(user:User)-[]-(p)-[]->(art: Art), (me:User {id:{id}}) ',
         'MATCH (me)-[]-(me_profile)-[]->(me_art:Art) ',
-        'OPTIONAL MATCH (partner)-[rel_partner:IS_PARTNER {status: ' + invitationStatus.Accept + '}]-(pop) ',
+        'WHERE NOT partner.id = {id}',
+        'OPTIONAL MATCH (user)-[rel_partner:IS_PARTNER {status: ' + invitationStatus.Accept + '}]-(pop) ',
         'OPTIONAL MATCH (me_profile)-[rel_common_art:HAS_ART]-(art) ',
         'OPTIONAL MATCH (me)-[common_partner:IS_PARTNER {status: ' + invitationStatus.Accept + '}]-(pop) ',
-        'RETURN partner, art.name AS art, COUNT(rel_partner) AS partners_count, COUNT (common_partner) AS common_partners_count, '+
+        'RETURN user, art.name AS art, COUNT(rel_partner) AS partners_count, COUNT (common_partner) AS common_partners_count, ' +
         'COUNT(rel_common_art) AS common_arts_count'].join('\n');
 };
-
-
 
 module.exports = {
     //Users
@@ -200,6 +228,7 @@ module.exports = {
     getUsers: getUsers,
     getUserById: getUserById,
     updateUser: updateUser,
+    addArtsToUser: addArtsToUser,
     getUsersByEmail: getUsersByEmail,
     getUserByEmail: getUserByEmail,
     getUsersByName: findUsersByName,

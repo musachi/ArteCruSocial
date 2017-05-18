@@ -13,7 +13,7 @@ constants.UNDEFINED = 'undefined';
 
 const arts = function()
 {
-    const arts = ['Paint', 'Music', 'Sculpture', 'Architecture', 'Literature', 'Dance', 'Cinema'];
+    const arts = ['Paint', 'Music', 'Sculpture', 'Architecture', 'Literature', 'Dance', 'Cinema', 'Other'];
     return arts;
 };
 

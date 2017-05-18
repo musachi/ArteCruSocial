@@ -45,11 +45,11 @@ var sendInvitation = function (session, id, user_id) {
         });
 };
 
-var getInvitations = function (session, start, counter, id) {
+var getInvitations = function (session, offset, limit, id) {
 
     return session.run(Cypher.getInvitations(), {
-        start: start,
-        counter: counter,
+        offset: offset,
+        limit: limit,
         id: id
     }).then(function getInvitationsCallback(results) {
         var response = "";
@@ -67,11 +67,11 @@ var getInvitations = function (session, start, counter, id) {
     });
 };
 
-var getInvitationsSent = function (session, start, counter, id) {
+var getInvitationsSent = function (session, offset, limit, id) {
 
     return session.run(Cypher.getInvitationsSent(), {
-        start: start,
-        counter: counter,
+        offset: offset,
+        limit: limit,
         id: id
     }).then(function getInvitationsCallback(results) {
         var response = "";
