@@ -1,6 +1,6 @@
-var _ = require('lodash');
+const _ = require('lodash');
 
-var LoginResult = module.exports = function (user, token) {
+const LoginResult = module.exports = function (user, token) {
         _.extend(this, {
                user: user,
                token: token

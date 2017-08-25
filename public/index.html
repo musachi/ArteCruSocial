@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+   
+<head>
+            <title>WebSockets Chat Example</title>
+           
+    <script type="text/javascript" src="jquery.js"></script>
+           
+    <script>
+
+        let ws = null;
+        let user = null;
+
+        $(document).ready(function () {
+            //$("#chat").hide();//Ocultamos por defecto el layer del chat
+
+            //controlamos el evento del boton de iniciar chat
+            $("#btnJoin").click(function () {
+
+                user = $("#user").val();
+                ws = new WebSocket('ws://192.168.2.107:3000/connection/d11d4385-b799-41a8-bc30-d7e3b327bd21', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjoiZDExZDQzODUtYjc5OS00MWE4LWJjMzAtZDdlM2IzMjdiZDIxIiwiaWF0IjoxNTAzNTkzODM0LCJleHAiOjE1MDM1OTU2MzR9.k3GpxQpZLOVaCp21t3Nt9ntHTkK2WczzillvEQEMhRE');
+
+                ws.onmessage = function (message) {
+                    console.log('received: %s', message);
+                    $(".rightSide").append(message);
+                };
+
+                $("#chat").show();
+                $(".user").show();
+            });
+
+            $("#send").click(function () {
+                if (ws)
+                    ws.send('message', {
+                        owner_user_id: "6b9cc630-b735-4946-9871-87e790d2fd13",
+                        target_id: "6b9cc630-b735-4946-9871-87e790d2fd13",
+                        message_type: "private"
+                    });
+            });
+        });
+    </script>
+           
+    <style>
+                    .leftSide {
+            float: left;
+            min-width: 25%;
+            min-height: 400px;
+            margin: 10px;
+            padding: 15px;
+            border: 1px solid #333;
+        }
+
+                    .rightSide {
+            float: right;
+            min-width: 65%;
+            min-height: 400px;
+            margin: 10px;
+            padding: 15px;
+            border: 1px solid #333;
+        }
+
+                </style>
+</head>
+   
+<body>
+        <h2>Welcome to the WebSockets Chat</h2>
+       
+<section class="user">
+                <label>User Name </label> <input type="text" id="user"/>
+                <input type="button" value="Join" id="btnJoin"/>
+           
+</section>
+       
+<section id="chat">
+               
+    <section class="leftSide"></section>
+               
+    <section class="rightSide"></section>
+               
+    <section>
+                        <input type="button" value="Send" id="send" style="margin:10px; padding:10px;"/>
+                        <input type="text" id="textSend" style="margin:10px;"/>
+                   
+    </section>
+           
+</section>
+   
+</body>
+</html>

@@ -3,8 +3,8 @@
  * @type {constants}
  */
 
-var constants = require('./contants').constants;
-var arts = require('./contants').arts();
+let constants = require('./contants').constants;
+const arts = require('./contants').arts();
 
 function IsValidPassword(password) {
     return password.length >= parseInt(constants.MIN_PASSWORD_CHARACTERS) && password.length <= parseInt(constants.MAX_PASSWORD_CHARACTERS);
@@ -15,13 +15,13 @@ function IsValidEmail(email) {
 }
 
 function isUndefined(field) {
-    return typeof field === constants.UNDEFINED;
+    return typeof field === constants.UNDEFINED || field == "undefined";
 }
 
 function findUndefined(fields) {
-    var found_undefined = false;
+    let found_undefined = false;
 
-    var i = 0;
+    let i = 0;
     while (!found_undefined && i < fields.length) {
         if (isUndefined(fields[i++]))
             found_undefined = true;

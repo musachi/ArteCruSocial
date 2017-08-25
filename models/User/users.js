@@ -26,17 +26,16 @@ const invitationStatus = require('../Service/invitation-status');
 const validateData = require('../../helpers/validate-data');
 
 var createUser = function (session, email, password, name, art) {
-    var errorResponse = new ErrorResponse(status.InternalError, status.InternalErrorCode, messages.InternalServerError);
+    var errorResponse = new ErrorResponse(status.InternalError, messages.InternalServerError);
 
     return session.run(Cypher.getUserByEmail(), {email: email})
         .then(function userByEmailCallback(results) {
             if (!_.isEmpty(results.records)) {
                 console.log('Error user exist');
-                return new ErrorResponse(status.DuplicatedEmail, status.DuplicatedEmail, messages.DuplicateEmail);
+                return new ErrorResponse(status.DuplicatedEmail, messages.DuplicateEmail);
             }
             else {
-                var currentDate = dateHelper.getTime();
-                console.log("Arts: " + JSON.stringify(arts));
+                const currentDate = dateHelper.getTime();
                 return session.run(Cypher.createUser(),
                     {
                         id: uuid.v4(),
@@ -44,7 +43,7 @@ var createUser = function (session, email, password, name, art) {
                         password: hashPassword(email, password),
                         name: name,
                         art: arts[art],
-                        created_at: currentDate.toString()
+                        created_at: currentDate
                     }
                 ).then(function createUserCallback(results) {
                         try {
@@ -57,7 +56,7 @@ var createUser = function (session, email, password, name, art) {
                         }
                     }
                 ).catch(function createUserError(err) {
-                    console.log("Error creating user: " + JSON.stringify(err));
+                    console.log("Error creating user: " + util.inspect(err));
                     return errorResponse;
                 });
             }
@@ -75,13 +74,12 @@ function authenticate(session, username, password) {
         password: hashPassword(username, password)
     }).then(function (results) {
         if (_.isEmpty(results.records[0])) {
-            return new ErrorResponse(status.Unauthorized, status.InvalidCredentials, messages.InvalidadCredentials);
+            return new ErrorResponse(status.Unauthorized, messages.InvalidadCredentials);
         }
 
         var user = getUserDetails(results.records[0]);
         var token = generateToken(user);
-        var response = new Response(status.Ok, new LoginResult(user, token));
-        return response;
+        return new Response(status.Ok, new LoginResult(user, token));
     }).catch(function (err) {
         console.log("Error on login: " + err);
         return errors.InternalErrorResponse();
@@ -102,7 +100,7 @@ var getUsers = function (session, offset, limit) {
         });
         return new Response(status.Ok, users);
     }).catch(function (err) {
-        console.log("Model error getting users: " + JSON.stringify(err));
+        console.log("Model error getting users: " + util.inspect(err));
         return errors.InternalErrorResponse();
         //finish(response);
     });
@@ -126,8 +124,23 @@ var updateUser = function (session, id, name, email) {
     });
 };
 
-var addArtsToUser = function (session, id, arts_values) {
-    let arts_names = new Array();
+const updateUserAvatar = function (session, id, avatar) {
+    const cypher_params = {
+        id: id,
+        avatar: avatar
+    };
+    return session.run(Cypher.updateUserAvatar(), cypher_params)
+        .then(function updateAvatarResult(results) {
+            return results.records[0].get('avatar');
+        }).catch(function errorUpdateUsr(err) {
+            console.log("module updating user avatar error: " + util.inspect(err));
+            return errors.InternalErrorResponse();
+        });
+};
+
+//TODO put arts in separated file
+const addArtsToUser = function (session, id, arts_values) {
+    let arts_names = [];
     arts_values.forEach(function (art) {
         arts_names.push(arts[art]);
     });
@@ -145,6 +158,26 @@ var addArtsToUser = function (session, id, arts_values) {
         return "";
     }).catch(function addArtsToUserError(err) {
         console.log("model error addd arts to user: " + util.inspect(err));
+        throw new Error;
+    });
+};
+
+var deleteArtsFromUser = function (session, id, arts_values) {
+    let arts_names = [];
+    arts_values.forEach(function (art) {
+        arts_names.push(arts[art]);
+    });
+
+    return session.run(Cypher.deleteArtsFromUser(),
+        {
+            id: id,
+            arts: arts_names
+        }).then(function deleteArtsFromUserCallback(results) {
+        if (results.records.length > 0)
+            return true;
+        return false;
+    }).catch(function deleteArtsFromUserError(err) {
+        console.log("model error deleting arts from user: " + util.inspect(err));
         throw new Error;
     });
 };
@@ -218,7 +251,7 @@ var findUsers = function (session, id, field, art, offset, limit) {
     });
 };
 
-var findUsersByEmail = function (session, offset, limit, email) {
+const findUsersByEmail = function (session, offset, limit, email) {
     console.log("model getting users by email: " + email);
     //TODO cambiar el criterio de busqueda en la consulta Cypher (país, arte, centro de estudio o trabajo, provincia)
     return session.run(Cypher.getUsersByEmail(), {
@@ -255,20 +288,66 @@ var findUserById = function (session, id) {
     })
 };
 
-const getPartners = function (session, id, user_id) {
-    return session.run(Cypher.getPartners(), {
+const getPartners = function (session, id, user_id, limit, offset) {
+
+    let cypher_query = Cypher.getPartners();
+    if (user_id != id)
+        cypher_query = Cypher.getUserPartners();
+
+    console.log("id: " + id);
+    console.log("user id: " + user_id);
+
+    return session.run(cypher_query, {
         id: id,
-        user_id: user_id
+        user_id: user_id,
+        limit: limit,
+        offset: offset
     }).then(function getPartnersCallback(results) {
         let users = _.map(results.records, record => {
-            let user = new User(record.get('user'), arts.indexOf(record.get('art')));
-            console.log("partners count: " + record.get('partners_count') + " common arts count: "
-                + record.get('common_arts_count') + " common partners count: " + record.get('common_partners_count'));
-            user.partners_count = record.get('partners_count').low;
-            user.common_arts_count = record.get('common_arts_count').low;
-            user.common_partners_count = record.get('common_partners_count').low;
-            console.log("users: " + user);
-            return user;
+            let other_arts = [];
+            const main_art = record.get('art');
+            record.get('arts').forEach(function (art) {
+                if (art != main_art)
+                    other_arts.push(arts.indexOf(art));
+            });
+            let response = {};
+            response.user = new User(record.get('user'), arts.indexOf(main_art), other_arts);
+
+            response.partners_count = record.get('partners_count').low;
+
+            response.common_arts_count = record.get('common_arts_count').low;
+            response.common_partners_count = record.get('common_partners_count').low;
+
+            console.log("response.common_partners_count: " + response.common_partners_count);
+            if (id != user_id) {
+                const partner_rel_sent = record.get('r_sent');
+                const partner_rel_received = record.get('r_received');
+                let status = null;
+
+                if (partner_rel_sent != null) {
+                    status = partner_rel_sent.properties.status;
+                    if (!validateData.isUndefined(status.low))
+                        status = status.low;
+                    response.invitation_sent = true;
+                }
+                else if (partner_rel_received != null) {
+                    status = partner_rel_received.properties.status;
+                    response.invitation_sent = false;
+                    if (!validateData.isUndefined(status.low))
+                        status = status.low;
+                }
+
+                if (validateData.isUndefined(status))
+                    status = null;
+                response.partner_status = status;
+            }
+
+            if (response.user['id'] == id) {
+                response.common_partners_count = 0;
+                response.common_arts_count = 0;
+            }
+
+            return response;
         });
         return new Response(status.Ok, users);
     }).catch(function getPartnersError(err) {
@@ -280,7 +359,7 @@ const getPartners = function (session, id, user_id) {
 function getUserDetails(record) {
     let user_node = "";
     let art = "";
-    let other_arts = new Array();
+    let other_arts = [];
     if (!validateData.isUndefined(record));
     {
         try {
@@ -290,15 +369,15 @@ function getUserDetails(record) {
                 record.get('arts').forEach(function (art) {
                     other_arts.push(arts.indexOf(art));
                 });
-            console.log("other_arts: " + other_arts);
+
             return new User(user_node, art, other_arts);
         }
         catch (err) {
-            console.log("get User Details error: " + err);
+            console.log("model error getting user details: " + err);
             return new User(user_node, art, Object.UNDEFINED);
         }
     }
-};
+}
 
 var getArts = function (session, id) {
     return session.run(Cypher.getArts(), {
@@ -307,7 +386,7 @@ var getArts = function (session, id) {
         if (results.records.length > 0) {
             let data_response = {};
             data_response.art = arts.indexOf(results.records[0].get('art'));
-            let arts_values = new Array();
+            let arts_values = [];
             results.records[0].get('arts').forEach(function (art) {
                 arts_values.push(arts.indexOf(art));
             });
@@ -321,18 +400,20 @@ var getArts = function (session, id) {
     });
 };
 
+//TODO put in other file for use whenever we need
+
 function hashPassword(username, password) {
     var s = username + ':' + password;
     return crypto.createHash('sha256').update(s).digest('hex');
 }
 
-function generateToken(user) {
+
+//TODO review log generated
+function generateToken(user, secret) {
     //TODO secret in a config file
-    var token = jwt.sign(user, constants.SECRET, {
+    return jwt.sign(user, secret || constants.SECRET, {
         expiresIn: constants.EXPIRATION_TOKEN_IN_SECONDS // expires in 3 days
     });
-
-    return token;
 }
 
 module.exports = {
@@ -345,6 +426,8 @@ module.exports = {
     findUsersByEmail: findUsersByEmail,
     findUsers: findUsers,
     updateUser: updateUser,
+    updateUserAvatar: updateUserAvatar,
     getPartners: getPartners,
-    getArts: getArts
+    getArts: getArts,
+    deleteArtsFromUser: deleteArtsFromUser
 };

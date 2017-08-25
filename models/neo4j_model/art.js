@@ -1,7 +1,7 @@
 
-var _ = require('lodash');
+const _ = require('lodash');
 
-var Art = module.exports = function(_node)
+let Art = module.exports = function(_node)
 {
     _.extend(this, _node.properties);
         if(this.id)

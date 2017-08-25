@@ -1,4 +1,4 @@
-var _ = require('lodash');
+const _ = require('lodash');
 
 /**
  *
@@ -7,7 +7,7 @@ var _ = require('lodash');
  * @constructor
  */
 
-var RegisterResult = module.exports = function (User) {
+const RegisterResult = module.exports = function (User) {
     _.extend(this, {
         'user': User,
     });

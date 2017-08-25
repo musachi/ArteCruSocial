@@ -1,8 +1,8 @@
-var ErrorResponse = require('../models/Service/error-response');
-var status = require('../models/Service/status');
-var messages = require('./messages');
+const ErrorResponse = require('../models/Service/error-response');
+const status = require('../models/Service/status');
+const messages = require('./messages');
 
-var write = function (res, response) {
+const write = function (res, response) {
     res.status(response.status || 200).jsonp(response.data);
 };
 

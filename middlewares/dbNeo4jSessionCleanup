@@ -1,9 +1,0 @@
-module.exports = function dbNeo4jSessionCleanup(req, res, next) {
-    res.on('finish', function () {
-        if (res.neo4jSession) {
-            res.neo4jSession.close();
-            delete res.neo4jSession;
-        }
-    });
-    next();
-};

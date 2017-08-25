@@ -1,8 +1,0 @@
-var _ = require('lodash');
-
-var Response = module.exports = function (status, data) {
-    _.extend(this, {
-        'status': status,
-        'data': data
-    });
-};

@@ -2,7 +2,7 @@
  * Created by Adonys on 4/13/2017.
  */
 
-var invitationStatus = function()
+let invitationStatus = function()
 {
 };
 

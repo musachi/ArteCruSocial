@@ -1,6 +1,6 @@
 'use strict';
 
-var nconf = require('nconf');
+const nconf = require('nconf');
 
 nconf.env(['PORT', 'NODE_ENV'])
     .argv({
@@ -21,16 +21,26 @@ nconf.env(['PORT', 'NODE_ENV'])
             describe: "Use local or remote neo4j instance",
             demand: false,
             default: "local"
+        },
+        'h':{
+            alias: "HOST",
+            describe: "Use local or remote neo4j instance",
+            demand: false,
+            default: "192.168.2.100"
         }
     })
     .defaults({
-        'USERNAME': "neo4j",
-        'PASSWORD' : "aa",
+        'NEO4J_USERNAME': "neo4j",
+        'NEO4J_PASSWORD' : "aa",
         'neo4j': 'local',
         'neo4j-local': 'bolt://localhost:7687',
-        'neo4j-remote': 'bolt:http://162.243.100.222:7687',
+        'neo4j-remote': 'bolt:http://162.243.2.100:7687',
         'base_url': 'http://localhost:3000',
-        'api_path': '/api/v1.0'
+        'api_path': '/api/v1.0',
+        'PG_USERNAME': "postgres",
+        'PG_PASSWORD': "aa",
+        'pg-local': "http://localhost:5324",
+        'ORIGIN_HOST': "http://192.168.2.102:3000"
     });
 
 module.exports = nconf;
